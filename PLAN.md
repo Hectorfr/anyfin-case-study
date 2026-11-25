@@ -22,6 +22,8 @@ Result: **29.71** on the fixed dev split (41 correct, 0 wrong, 97 unknown). See 
 
 ## 2. Model or LLM fallback
 
+Local text experiment: an optional character n-gram logistic model selected a 0.60 threshold on train-only grouped folds. It scored **34.06** on dev (48 correct, 1 wrong, 89 unknown) versus 29.71 without the model. It is not the default because six of seven added correct rows repeat one business and its score is uncalibrated. See [RESULTS.md](RESULTS.md).
+
 - [ ] Apply the fallback only where rules and merchant matching return `unknown`. Compare a small local text model with an LLM on the same dev rows; use transaction text, amount direction, and account context.
 - [ ] Make the output one valid taxonomy label or `unknown`. For an LLM, use a fixed prompt and structured response, cache repeated normalized inputs, batch requests where sensible, and read any key from an environment variable.
 - [ ] Measure incremental score, latency, and cost over the merchant matcher. Check the case limits of under 10 minutes and $5 for 5,517 hidden rows, and estimate what 10 million rows per month would cost. Keep the local model if an LLM cannot meet those limits.

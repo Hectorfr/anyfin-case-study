@@ -22,3 +22,24 @@ python score.py data/dev.csv predictions/dev-full.csv
 ```
 
 The full 138-row run took about 0.02 seconds on this machine and makes no API calls. That tiny runtime sample is not a 10-million-row capacity estimate. The input is loaded in memory to pair transfers, so production-scale processing would require a different batching or pairing strategy.
+
+## Optional local text classifier
+
+The optional character n-gram TF-IDF and logistic model trains on all 558 `data/train.csv` rows and runs only after rules and merchant matching return `unknown`. A three-fold split by normalized description selected the 0.60 raw model-score threshold on train data (14 added correct, 0 wrong across 393 fallback rows). The raw score is **not** calibrated as a probability.
+
+| Configuration | Correct | Wrong | Unknown | Score per 100 | Precision | Coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Rules + merchant matcher | 41 | 0 | 97 | 29.71 | 100% | 29.71% |
+| Plus optional text model | 48 | 1 | 89 | **34.06** | 97.96% | 35.51% |
+
+The added results are seven correct and one wrong. Six correct rows are repeat purchases from one business, so the gain spans few distinct businesses. The wrong row is a leisure purchase classified as groceries after a location word matched grocery examples. This dev result is exploratory rather than independent evidence for future customers.
+
+Run the optional comparison after installing `requirements-model.txt`:
+
+```sh
+python evaluate_text_model.py
+python predict.py data/dev.csv --text-model --output predictions/dev-text.csv
+python score.py data/dev.csv predictions/dev-text.csv
+```
+
+A synthetic 5,517-row input with unique description suffixes completed in about 1 second on this machine, including model fitting, and produced 5,517 output rows. It does not measure accuracy or a production-scale memory footprint. There are no model API fees; `scikit-learn` is an optional local dependency.

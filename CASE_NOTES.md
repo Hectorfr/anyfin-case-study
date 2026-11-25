@@ -22,6 +22,8 @@ The test shifts both customer and merchant distributions. Bank text has dates, p
 
 `merchant_matching.py` now builds a spending-merchant index from `data/train.csv` and runs only after a rule returns `unknown`. It strips bank and payment-provider wrappers, then attempts exact, safe name-extension, consistent chain, and conservative fuzzy matches. On the fixed development set, rules plus matching scored 29.71 versus 25.36 for rules alone, with zero wrong labels in either run. Most development businesses remain unseen in training, so this stage has limited coverage; a model fallback is the next stage.
 
+An optional local character n-gram logistic classifier now runs after the matcher with `--text-model`. It requires `requirements-model.txt` but makes no API calls. The 0.60 score threshold was selected on train-only description-group folds. On dev it added seven correct labels and one wrong label, raising the score to 34.06; six of those correct rows share one merchant. Its score is not a calibrated probability, so the default command still stops after merchant matching.
+
 ## Approaches to investigate later
 
 1. **Extend high-certainty rules:** Normalize more bank wrappers and merchant strings. Keep provenance for every rule.

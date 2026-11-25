@@ -44,12 +44,34 @@ python score.py data/dev.csv predictions/dev-text.csv
 
 A synthetic 5,517-row input with unique description suffixes completed in about 1 second on this machine, including model fitting, and produced 5,517 output rows. It does not measure accuracy or a production-scale memory footprint. There are no model API fees; `scikit-learn` is an optional local dependency.
 
-## Full-training validation predictions
+## Claude fallback on unseen descriptions
 
-After development, `--full-training` fits both merchant matching and the optional text model on all 696 labelled rows in `data/transactions.csv` instead of the 558-row training split. The generated [solutions.csv](solutions.csv) uses this option:
+The optional `--claude` stage runs only for rows still `unknown` after rules, merchant matching and the local text model. It batches unique descriptions, uses Claude Haiku 5.5's structured JSON output, and accepts a label only when Claude marks it high certainty, names a recognizable business or explicit purpose, and quotes supporting text actually present in the transaction. This is a conservative gate, not a calibrated probability. The prompt and gate were fixed before the first Claude development run.
+
+| Configuration on fixed dev | Correct | Wrong | Unknown | Score per 100 | Precision | Coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Rules + matcher + local text | 48 | 1 | 89 | 34.06 | 97.96% | 35.51% |
+| Plus Claude fallback | 127 | 1 | 10 | **91.30** | 99.22% | 92.75% |
+
+With the final response limit, Claude added 79 correct and 0 wrong labels across 38 distinct description/context groups. The one wrong label in the combined pipeline came from the preceding local text model: a Nordea `SF BIO SODERMALM` cinema purchase was called groceries. The first, smaller response limit produced 84.78 on dev and truncated a validation batch, so the final limit was raised. Two runs of the final configuration produced identical dev predictions, though output-token usage differed. The dev set is small and was already used while developing previous stages, so this is exploratory evidence, not a guaranteed hidden-set score. Each final dev run made 3 API requests using 7,831 input and about 2,300 output tokens.
+
+Reproduce after putting `ANTHROPIC_API_KEY` in the ignored `.env` file:
 
 ```sh
-python predict.py data/validation.csv --full-training --text-model --output solutions.csv
+python predict.py data/dev.csv --text-model --claude --output predictions/dev-claude.csv
+python score.py data/dev.csv predictions/dev-claude.csv
 ```
 
-The file has exactly 1,183 unique validation IDs in source order and only valid `id,category` values. It labels 514 rows and returns `unknown` for 669 (43.45% coverage). Compared with training on the 558-row split, 104 rows changed from `unknown` to a label and 18 changed from a label to `unknown`; no already-labelled row changed to a different label. The validation file has no gold labels, so these counts do not establish a score improvement. The 34.06 development score above applies only to the split-trained model; scoring the full-trained model on dev would leak its training labels.
+Claude Haiku 5.5 is listed at $0.10 per million input tokens and $0.50 per million output tokens for prompts under 100,000 tokens. At those rates, each successful final dev run's token use costs about $0.002 and the successful validation run's use costs about $0.016, excluding earlier retries. The validation run used 16 requests, 47,527 input and 21,928 output tokens, and took about 75 seconds here. If hidden data has a similar mix of unique descriptions, 5,517 rows would scale to roughly six minutes and under $0.10 of model tokens; actual rate limits and runtime need a hidden-run check. A 10-million-row month at the same mix would imply about $130 of model tokens if the 2,000-group cap were raised; batching, parallelism and persistent caching would be needed for that volume.
+
+API reference: [Claude Messages](https://platform.claude.com/docs/en/api/messages/create), [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [Haiku 5.5 pricing](https://platform.claude.com/docs/en/models/haiku-5-5/overview).
+
+## Full-training validation predictions
+
+After development, `--full-training` fits both merchant matching and the optional text model on all 696 labelled rows in `data/transactions.csv` instead of the 558-row training split. The generated [solutions.csv](solutions.csv) also uses the Claude fallback:
+
+```sh
+python predict.py data/validation.csv --full-training --text-model --claude --output solutions.csv
+```
+
+The file has exactly 1,183 unique validation IDs in source order and only valid `id,category` values. It labels 1,033 rows and returns `unknown` for 150 (87.32% coverage). Claude labelled 519 rows that the full-trained local pipeline left `unknown`, without changing any existing local label. The validation file has no gold labels, so these counts do not establish its score. The 91.30 development score above applies only to the split-trained model; scoring the full-trained model on dev would leak its training labels.

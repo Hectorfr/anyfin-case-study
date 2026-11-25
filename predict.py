@@ -3,10 +3,12 @@
 import argparse
 import csv
 import re
+import sys
 from collections import defaultdict
 from decimal import Decimal
 from pathlib import Path
 
+from claude_fallback import ClaudeAPIError, ClaudeFallback, MissingClaudeKey, MODEL as CLAUDE_MODEL
 from merchant_matching import MerchantMatcher
 from text_classifier import MissingTextModelDependency, TextClassifier
 
@@ -106,6 +108,10 @@ def predict(
     matching: str = "full",
     text_model: bool = False,
     full_training: bool = False,
+    claude: bool = False,
+    claude_model: str = CLAUDE_MODEL,
+    claude_batch_size: int = 20,
+    claude_max_items: int = 2000,
 ) -> None:
     training_file = "transactions.csv" if full_training else "train.csv"
     training_path = Path(__file__).resolve().parent / "data" / training_file
@@ -113,6 +119,7 @@ def predict(
         training_rows = list(csv.DictReader(training_source))
     matcher = MerchantMatcher(training_rows, mode=matching)
     fallback = TextClassifier(training_rows) if text_model else None
+    llm = ClaudeFallback(model=claude_model, batch_size=claude_batch_size, max_items=claude_max_items) if claude else None
 
     with input_path.open(newline="", encoding="utf-8-sig") as source:
         reader = csv.DictReader(source)
@@ -123,6 +130,8 @@ def predict(
         rows = list(reader)
         paired = paired_transfer_categories(rows)
         predictions = []
+        llm_rows = []
+        llm_indices = []
         seen_ids = set()
         for row in rows:
             row_id = row["id"]
@@ -134,9 +143,26 @@ def predict(
                 category = matcher.match(row).category
             if category == "unknown" and fallback is not None:
                 category = fallback.classify(row)
+            if category == "unknown" and llm is not None:
+                llm_rows.append(row)
+                llm_indices.append(len(predictions))
             if category not in VALID_CATEGORIES:
                 raise ValueError(f"Invalid category for {row_id}: {category!r}")
             predictions.append({"id": row_id, "category": category})
+
+    if llm is not None and llm_rows:
+        llm_categories = llm.classify_many(llm_rows)
+        if len(llm_categories) != len(llm_rows):
+            raise ValueError("Claude returned the wrong number of classifications")
+        for index, category in zip(llm_indices, llm_categories):
+            if category not in VALID_CATEGORIES:
+                raise ValueError(f"Invalid Claude category: {category!r}")
+            predictions[index]["category"] = category
+        print(
+            f"Claude: {llm.calls} requests, {llm.input_tokens} input tokens, "
+            f"{llm.output_tokens} output tokens",
+            file=sys.stderr,
+        )
 
     with output_path.open("w", newline="", encoding="utf-8") as target:
         writer = csv.DictWriter(target, fieldnames=["id", "category"], lineterminator="\n")
@@ -150,6 +176,10 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path("predictions.csv"))
     parser.add_argument("--matching", choices=("none", "exact", "full"), default="full")
     parser.add_argument("--text-model", action="store_true", help="use the optional local text fallback")
+    parser.add_argument("--claude", action="store_true", help="use Claude after local stages abstain")
+    parser.add_argument("--claude-model", default=CLAUDE_MODEL, help=f"Claude model (default: {CLAUDE_MODEL})")
+    parser.add_argument("--claude-batch-size", type=int, default=20, help="unique descriptions per request (default: 20)")
+    parser.add_argument("--claude-max-items", type=int, default=2000, help="maximum unique descriptions sent (default: 2000)")
     parser.add_argument(
         "--full-training",
         action="store_true",
@@ -164,6 +194,10 @@ if __name__ == "__main__":
             matching=args.matching,
             text_model=args.text_model,
             full_training=args.full_training,
+            claude=args.claude,
+            claude_model=args.claude_model,
+            claude_batch_size=args.claude_batch_size,
+            claude_max_items=args.claude_max_items,
         )
-    except MissingTextModelDependency as exc:
+    except (MissingTextModelDependency, MissingClaudeKey, ClaudeAPIError) as exc:
         parser.exit(2, f"error: {exc}\n")

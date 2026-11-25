@@ -24,8 +24,10 @@ Result: **29.71** on the fixed dev split (41 correct, 0 wrong, 97 unknown). See 
 
 Local text experiment: an optional character n-gram logistic model selected a 0.60 threshold on train-only grouped folds. It scored **34.06** on dev (48 correct, 1 wrong, 89 unknown) versus 29.71 without the model. It is not the default because six of seven added correct rows repeat one business and its score is uncalibrated. See [RESULTS.md](RESULTS.md).
 
-- [ ] Apply the fallback only where rules and merchant matching return `unknown`. Compare a small local text model with an LLM on the same dev rows; use transaction text, amount direction, and account context.
-- [ ] Make the output one valid taxonomy label or `unknown`. For an LLM, use a fixed prompt and structured response, cache repeated normalized inputs, batch requests where sensible, and read any key from an environment variable.
+The batched Claude Haiku 5.5 fallback raised the dev score to **91.30** (127 correct, 1 wrong, 10 unknown) with the final response limit. Its high-certainty and evidence gate is empirically precise on this small split but not probability-calibrated. See [RESULTS.md](RESULTS.md).
+
+- [x] Apply the fallback only where rules, merchant matching and the local text model return `unknown`. Compare the local text model with Claude on the same dev rows using text, direction and account context.
+- [x] Make the output one valid taxonomy label or `unknown`. Use a fixed prompt, structured response, repeated-description cache, batches, and a key from an environment variable or ignored `.env` file.
 - [ ] Measure incremental score, latency, and cost over the merchant matcher. Check the case limits of under 10 minutes and $5 for 5,517 hidden rows, and estimate what 10 million rows per month would cost. Keep the local model if an LLM cannot meet those limits.
 
 **Exit check:** The fallback improves total dev score after its mistakes are counted, and the end-to-end run fits the case's runtime and cost limits.
@@ -39,6 +41,6 @@ Local text experiment: an optional character n-gram logistic model selected a 0.
 
 **Exit check:** Select the configuration with the best credible dev score and acceptable cost, then generate the official predictions from that frozen code.
 
-The candidate [solutions.csv](solutions.csv) was generated with `--full-training --text-model` after the split-trained model raised the dev score to 34.06. Its 1,183 IDs and categories were validated, but its accuracy cannot be measured without validation labels.
+The candidate [solutions.csv](solutions.csv) was regenerated with `--full-training --text-model --claude` after the split-trained version scored 91.30 on dev. Its 1,183 IDs and categories were validated, but its accuracy cannot be measured without validation labels.
 
 Case source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-night/#label).

@@ -1,5 +1,5 @@
 # Anyfin KTH case night — Track A starter
-Install: `pip install -r requirements-model.txt`; run: `python predict.py data/validation.csv --full-training --text-model --output solutions.csv`.
-Approach: rules, merchant matching and local text model fitted on all 696 labelled rows; uncertain rows are `unknown`; output is `id,category`.
-Cost at 10 million rows/month: $0 in model/API fees; compute and memory costs remain unmeasured.
-With another day: calibrate the text model on more customers and investigate genuinely unseen businesses.
+Setup/run: `pip install -r requirements-model.txt`; put `ANTHROPIC_API_KEY` in ignored `.env` (see `.env.example`); `python predict.py data/validation.csv --full-training --text-model --claude --output solutions.csv`.
+Approach: rules, merchant matching, local text model, then batched Claude Haiku 5.5 for high-evidence unknowns; output is `id,category`.
+Estimated Claude cost at 10 million validation-like rows/month: about $130, excluding compute; the 2,000-group run cap needs adjustment at that scale.
+With another day: validate on more customers, calibrate abstention and benchmark production-scale throughput.

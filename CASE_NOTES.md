@@ -5,6 +5,10 @@ Source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-
 The next steps and comparison gates are in [PLAN.md](PLAN.md).
 The fixed development results are in [RESULTS.md](RESULTS.md).
 
+## Claude API key
+
+The local `.env` file has a dedicated `ANTHROPIC_API_KEY=` line and is ignored by Git. To set up another checkout, copy `.env.example` to `.env` and replace `paste-your-key-here`; alternatively export `ANTHROPIC_API_KEY` in the shell. If your key is not scoped to a Claude workspace, set `ANTHROPIC_WORKSPACE_ID` there too. Environment variables take precedence over `.env`. Never put a real key in a tracked file. The optional `--claude-model` flag can select another model.
+
 ## Task and constraints
 
 - Predict exactly one of 19 transaction categories or `unknown` for each row. Input has `id,customer,bank,account,account_name,account_type,date,amount_sek,text`; output is exactly `id,category`.
@@ -24,7 +28,7 @@ The test shifts both customer and merchant distributions. Bank text has dates, p
 
 An optional local character n-gram logistic classifier now runs after the matcher with `--text-model`. It requires `requirements-model.txt` but makes no API calls. The 0.60 score threshold was selected on train-only description-group folds. On dev it added seven correct labels and one wrong label, raising the score to 34.06; six of those correct rows share one merchant. Its score is not a calibrated probability, so the default command still stops after merchant matching.
 
-For final inference, `--full-training` fits both the matcher and optional text classifier on all 696 labelled transactions. `solutions.csv` was generated from the 1,183 unlabelled validation rows with both flags; 514 received a category and 669 received `unknown`. This is coverage only, since validation labels are unavailable.
+For final inference, `--full-training` fits both the matcher and optional text classifier on all 696 labelled transactions. `--claude` then sends only the remaining unknown descriptions in batches to Claude Haiku 5.5, using a key from the environment or ignored `.env` file. It accepts high-certainty answers with an exact supporting text span. On dev this raised the score to 91.30 (127 correct, 1 wrong, 10 unknown). `solutions.csv` was regenerated from the 1,183 unlabelled validation rows; 1,033 received a category and 150 received `unknown`. This is coverage only, since validation labels are unavailable.
 
 ## Approaches to investigate later
 

@@ -1,8 +1,8 @@
 """Conservative rule-based baseline for the Anyfin Track A case."""
 
+import argparse
 import csv
 import re
-import sys
 from collections import defaultdict
 from decimal import Decimal
 from pathlib import Path
@@ -124,6 +124,9 @@ def predict(input_path: Path, output_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit("Usage: python predict.py INPUT.csv")
-    predict(Path(sys.argv[1]), Path("predictions.csv"))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", type=Path, help="CSV to label")
+    parser.add_argument("--output", type=Path, default=Path("predictions.csv"))
+    args = parser.parse_args()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    predict(args.input, args.output)

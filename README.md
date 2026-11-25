@@ -1,5 +1,5 @@
-# Anyfin KTH case night — Track A starter
-Setup/run: `pip install -r requirements-model.txt`; put `ANTHROPIC_API_KEY` in ignored `.env` (see `.env.example`); `python predict.py data/validation.csv --full-training --text-model --claude --output solutions.csv`.
-Approach: rules, merchant matching, local text model, then batched Claude Haiku 5.5 for high-evidence unknowns; output is `id,category`.
-Estimated Claude cost at 10 million validation-like rows/month: about $130, excluding compute; the 2,000-group run cap needs adjustment at that scale.
-With another day: validate on more customers, calibrate abstention and benchmark production-scale throughput.
+# Anyfin Track A transaction classifier
+Approach: rules, merchant matching, character n-gram model, then batched Claude Haiku 5.5 for well-supported remaining labels; otherwise `unknown`.
+Run: `pip install -r requirements-model.txt`; set `ANTHROPIC_API_KEY` in `.env` (copy `.env.example`); `python predict.py INPUT.csv --full-training --text-model --claude --output predictions.csv`.
+Cost at 10 million rows/month: about $130 in Claude tokens at the validation set's description mix, plus compute; raise the current 2,000-group cap to keep the same coverage.
+With another day: test on independently labelled new customers, calibrate abstention, and benchmark production throughput.

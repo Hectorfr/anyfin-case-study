@@ -2,6 +2,8 @@
 
 Source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-night/#label), 25 November 2026. The supplied transactions are synthetic. This repository contains the public training and validation CSVs for convenience; it does not contain event API keys.
 
+The next steps and comparison gates are in [PLAN.md](PLAN.md).
+
 ## Task and constraints
 
 - Predict exactly one of 19 transaction categories or `unknown` for each row. Input has `id,customer,bank,account,account_name,account_type,date,amount_sek,text`; output is exactly `id,category`.

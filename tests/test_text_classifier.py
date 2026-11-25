@@ -38,6 +38,22 @@ class TextClassifierTests(unittest.TestCase):
                     {"id": "b", "category": "spend.shopping"},
                 ])
 
+    def test_full_training_includes_held_out_dev_rows_for_both_models(self):
+        data = Path(__file__).resolve().parents[1] / "data"
+        with (data / "dev.csv").open(newline="", encoding="utf-8") as stream:
+            dev_id = next(csv.DictReader(stream))["id"]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "predictions.csv"
+            with patch("predict.MerchantMatcher") as matcher_type, patch("predict.TextClassifier") as model_type:
+                matcher_type.return_value.match.return_value.category = "unknown"
+                model_type.return_value.classify.return_value = "unknown"
+                predict(data / "validation.csv", output, text_model=True, full_training=True)
+                matcher_rows = matcher_type.call_args.args[0]
+                model_rows = model_type.call_args.args[0]
+                self.assertEqual(len(matcher_rows), 696)
+                self.assertIs(matcher_rows, model_rows)
+                self.assertIn(dev_id, {row["id"] for row in matcher_rows})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,6 +24,8 @@ The test shifts both customer and merchant distributions. Bank text has dates, p
 
 An optional local character n-gram logistic classifier now runs after the matcher with `--text-model`. It requires `requirements-model.txt` but makes no API calls. The 0.60 score threshold was selected on train-only description-group folds. On dev it added seven correct labels and one wrong label, raising the score to 34.06; six of those correct rows share one merchant. Its score is not a calibrated probability, so the default command still stops after merchant matching.
 
+For final inference, `--full-training` fits both the matcher and optional text classifier on all 696 labelled transactions. `solutions.csv` was generated from the 1,183 unlabelled validation rows with both flags; 514 received a category and 669 received `unknown`. This is coverage only, since validation labels are unavailable.
+
 ## Approaches to investigate later
 
 1. **Extend high-certainty rules:** Normalize more bank wrappers and merchant strings. Keep provenance for every rule.

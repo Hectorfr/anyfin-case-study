@@ -99,8 +99,16 @@ def classify(row: dict[str, str], paired_category: str | None = None) -> str:
     return "unknown"
 
 
-def predict(input_path: Path, output_path: Path, *, matching: str = "full", text_model: bool = False) -> None:
-    training_path = Path(__file__).resolve().parent / "data/train.csv"
+def predict(
+    input_path: Path,
+    output_path: Path,
+    *,
+    matching: str = "full",
+    text_model: bool = False,
+    full_training: bool = False,
+) -> None:
+    training_file = "transactions.csv" if full_training else "train.csv"
+    training_path = Path(__file__).resolve().parent / "data" / training_file
     with training_path.open(newline="", encoding="utf-8-sig") as training_source:
         training_rows = list(csv.DictReader(training_source))
     matcher = MerchantMatcher(training_rows, mode=matching)
@@ -131,7 +139,7 @@ def predict(input_path: Path, output_path: Path, *, matching: str = "full", text
             predictions.append({"id": row_id, "category": category})
 
     with output_path.open("w", newline="", encoding="utf-8") as target:
-        writer = csv.DictWriter(target, fieldnames=["id", "category"])
+        writer = csv.DictWriter(target, fieldnames=["id", "category"], lineterminator="\n")
         writer.writeheader()
         writer.writerows(predictions)
 
@@ -142,9 +150,20 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path("predictions.csv"))
     parser.add_argument("--matching", choices=("none", "exact", "full"), default="full")
     parser.add_argument("--text-model", action="store_true", help="use the optional local text fallback")
+    parser.add_argument(
+        "--full-training",
+        action="store_true",
+        help="fit merchant matching and the text model on all 696 labelled transactions",
+    )
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     try:
-        predict(args.input, args.output, matching=args.matching, text_model=args.text_model)
+        predict(
+            args.input,
+            args.output,
+            matching=args.matching,
+            text_model=args.text_model,
+            full_training=args.full_training,
+        )
     except MissingTextModelDependency as exc:
         parser.exit(2, f"error: {exc}\n")

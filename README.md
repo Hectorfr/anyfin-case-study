@@ -1,5 +1,5 @@
 # Anyfin KTH case night — Track A starter
-Run: `python predict.py data/validation.csv` (optional `--text-model` after `pip install -r requirements-model.txt`); output: `predictions.csv` with `id,category`.
-Approach: rules, train-only merchant matching, then an optional local text model; uncertain rows are `unknown`.
+Install: `pip install -r requirements-model.txt`; run: `python predict.py data/validation.csv --full-training --text-model --output solutions.csv`.
+Approach: rules, merchant matching and local text model fitted on all 696 labelled rows; uncertain rows are `unknown`; output is `id,category`.
 Cost at 10 million rows/month: $0 in model/API fees; compute and memory costs remain unmeasured.
 With another day: calibrate the text model on more customers and investigate genuinely unseen businesses.

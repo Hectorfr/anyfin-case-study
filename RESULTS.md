@@ -43,3 +43,13 @@ python score.py data/dev.csv predictions/dev-text.csv
 ```
 
 A synthetic 5,517-row input with unique description suffixes completed in about 1 second on this machine, including model fitting, and produced 5,517 output rows. It does not measure accuracy or a production-scale memory footprint. There are no model API fees; `scikit-learn` is an optional local dependency.
+
+## Full-training validation predictions
+
+After development, `--full-training` fits both merchant matching and the optional text model on all 696 labelled rows in `data/transactions.csv` instead of the 558-row training split. The generated [solutions.csv](solutions.csv) uses this option:
+
+```sh
+python predict.py data/validation.csv --full-training --text-model --output solutions.csv
+```
+
+The file has exactly 1,183 unique validation IDs in source order and only valid `id,category` values. It labels 514 rows and returns `unknown` for 669 (43.45% coverage). Compared with training on the 558-row split, 104 rows changed from `unknown` to a label and 18 changed from a label to `unknown`; no already-labelled row changed to a different label. The validation file has no gold labels, so these counts do not establish a score improvement. The 34.06 development score above applies only to the split-trained model; scoring the full-trained model on dev would leak its training labels.

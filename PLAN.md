@@ -39,4 +39,6 @@ Local text experiment: an optional character n-gram logistic model selected a 0.
 
 **Exit check:** Select the configuration with the best credible dev score and acceptable cost, then generate the official predictions from that frozen code.
 
+The candidate [solutions.csv](solutions.csv) was generated with `--full-training --text-model` after the split-trained model raised the dev score to 34.06. Its 1,183 IDs and categories were validated, but its accuracy cannot be measured without validation labels.
+
 Case source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-night/#label).

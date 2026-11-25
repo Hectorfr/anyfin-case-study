@@ -7,6 +7,8 @@ from collections import defaultdict
 from decimal import Decimal
 from pathlib import Path
 
+from merchant_matching import MerchantMatcher
+
 
 REQUIRED_COLUMNS = {
     "id", "customer", "bank", "account", "account_name", "account_type",
@@ -96,7 +98,11 @@ def classify(row: dict[str, str], paired_category: str | None = None) -> str:
     return "unknown"
 
 
-def predict(input_path: Path, output_path: Path) -> None:
+def predict(input_path: Path, output_path: Path, *, matching: str = "full") -> None:
+    training_path = Path(__file__).resolve().parent / "data/train.csv"
+    with training_path.open(newline="", encoding="utf-8-sig") as training_source:
+        matcher = MerchantMatcher(list(csv.DictReader(training_source)), mode=matching)
+
     with input_path.open(newline="", encoding="utf-8-sig") as source:
         reader = csv.DictReader(source)
         missing = REQUIRED_COLUMNS - set(reader.fieldnames or ())
@@ -113,6 +119,8 @@ def predict(input_path: Path, output_path: Path) -> None:
                 raise ValueError(f"Missing or duplicate id: {row_id!r}")
             seen_ids.add(row_id)
             category = classify(row, paired.get(row_id))
+            if category == "unknown":
+                category = matcher.match(row).category
             if category not in VALID_CATEGORIES:
                 raise ValueError(f"Invalid category for {row_id}: {category!r}")
             predictions.append({"id": row_id, "category": category})
@@ -127,6 +135,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="CSV to label")
     parser.add_argument("--output", type=Path, default=Path("predictions.csv"))
+    parser.add_argument("--matching", choices=("none", "exact", "full"), default="full")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    predict(args.input, args.output)
+    predict(args.input, args.output, matching=args.matching)

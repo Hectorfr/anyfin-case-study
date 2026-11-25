@@ -3,6 +3,7 @@
 Source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-night/#label), 25 November 2026. The supplied transactions are synthetic. This repository contains the public training and validation CSVs for convenience; it does not contain event API keys.
 
 The next steps and comparison gates are in [PLAN.md](PLAN.md).
+The fixed development results are in [RESULTS.md](RESULTS.md).
 
 ## Task and constraints
 
@@ -15,9 +16,11 @@ The next steps and comparison gates are in [PLAN.md](PLAN.md).
 
 The test shifts both customer and merchant distributions. Bank text has dates, prefixes, payment processors, account transfers and ambiguous merchant names. Amount sign alone does not determine class: refunds and payouts keep the original purchase category. A savings transfer appears on both accounts, and the bank's nominal account type may not reflect its use. Credit card bill payments differ from the matching receipt on the card account. Payment provider invoices differ from card purchases routed through those providers. A person-to-person transfer with a stated purpose takes that purpose's category.
 
-## Current first-pass baseline
+## Current rules and merchant matcher
 
 `predict.py` recognizes explicit salary text, matched transfers between a customer's accounts, savings-account transfers, credit-card bill receipts, cash withdrawals, and a narrow set of loan and collections payment markers. Everything else is `unknown`. On the 696 labelled training rows it yielded 127 correct, 0 wrong, 569 unknown: score 18.25, precision 100%, coverage 18.25%. This is an in-sample diagnostic after inspecting the training data, not a generalization estimate. It produced one prediction per validation ID; the validation file has no labels, so its accuracy is unknown. The script loads the input into memory to match transfers; a 10-million-row production batch would require chunking or an external pairing index.
+
+`merchant_matching.py` now builds a spending-merchant index from `data/train.csv` and runs only after a rule returns `unknown`. It strips bank and payment-provider wrappers, then attempts exact, safe name-extension, consistent chain, and conservative fuzzy matches. On the fixed development set, rules plus matching scored 29.71 versus 25.36 for rules alone, with zero wrong labels in either run. Most development businesses remain unseen in training, so this stage has limited coverage; a model fallback is the next stage.
 
 ## Approaches to investigate later
 

@@ -11,12 +11,14 @@ Build on the current high-confidence rules in `predict.py`. The goal is to raise
 
 ## 1. Merchant matching
 
-- [ ] Extract the underlying merchant from bank prefixes, card dates, reference numbers, and payment-provider wrappers. Preserve the original text and distinguish a provider invoice (such as `KLARNA AB`) from a purchase routed through that provider (such as `KLARNA*SHOP`).
-- [ ] Build a merchant-to-category index from **train only**. Use exact normalized matches first. If a merchant has conflicting labels, abstain until the context resolves them.
-- [ ] Add conservative fuzzy matching for spelling variants and abbreviations. Require both a strong similarity score and a clear lead over the second candidate; genuinely new businesses go to the fallback.
-- [ ] Inspect errors on train-only held-out description groups while developing the matcher. Compare the frozen rules-only, exact-match, and fuzzy-match variants on dev.
+- [x] Extract the underlying merchant from bank prefixes, card dates, reference numbers, and payment-provider wrappers. Preserve the original text and distinguish a provider invoice (such as `KLARNA AB`) from a purchase routed through that provider (such as `KLARNA*SHOP`).
+- [x] Build a merchant-to-category index from **train only**. Use exact normalized matches first. If a merchant has conflicting labels, abstain until the context resolves them.
+- [x] Add conservative fuzzy matching for spelling variants and abbreviations. Require both a strong similarity score and a clear lead over the second candidate; genuinely new businesses go to the fallback.
+- [x] Inspect errors on train-only held-out description groups while developing the matcher. Compare the frozen rules-only, exact-match, and fuzzy-match variants on dev.
 
 **Exit check:** A higher dev score than 25.36, reproducible predictions, and no evidence that bank wrappers or payment providers are being mistaken for the merchant.
+
+Result: **29.71** on the fixed dev split (41 correct, 0 wrong, 97 unknown). See [RESULTS.md](RESULTS.md). Fuzzy matching has synthetic typo coverage but no additional dev matches yet.
 
 ## 2. Model or LLM fallback
 

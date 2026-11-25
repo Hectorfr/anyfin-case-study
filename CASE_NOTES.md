@@ -1,6 +1,6 @@
 # Track A: problem and possible approaches
 
-Source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-night/#label), 25 November 2026. The supplied transactions are synthetic. This repository contains the public training and validation CSVs for convenience; it does not contain the event API keys or a classifier.
+Source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-night/#label), 25 November 2026. The supplied transactions are synthetic. This repository contains the public training and validation CSVs for convenience; it does not contain event API keys.
 
 ## Task and constraints
 
@@ -13,9 +13,13 @@ Source: [Anyfin × KTH AI Society case night](https://anyfin.github.io/kth-case-
 
 The test shifts both customer and merchant distributions. Bank text has dates, prefixes, payment processors, account transfers and ambiguous merchant names. Amount sign alone does not determine class: refunds and payouts keep the original purchase category. A savings transfer appears on both accounts, and the bank's nominal account type may not reflect its use. Credit card bill payments differ from the matching receipt on the card account. Payment provider invoices differ from card purchases routed through those providers. A person-to-person transfer with a stated purpose takes that purpose's category.
 
-## Approaches to investigate later (none implemented)
+## Current first-pass baseline
 
-1. **Rules for high certainty cases:** Normalize bank wrappers and merchant strings; use account context and matched transfer pairs for predictable cases. Keep provenance for every rule.
+`predict.py` recognizes explicit salary text, matched transfers between a customer's accounts, savings-account transfers, credit-card bill receipts, cash withdrawals, and a narrow set of loan and collections payment markers. Everything else is `unknown`. On the 696 labelled training rows it yielded 127 correct, 0 wrong, 569 unknown: score 18.25, precision 100%, coverage 18.25%. This is an in-sample diagnostic after inspecting the training data, not a generalization estimate. It produced one prediction per validation ID; the validation file has no labels, so its accuracy is unknown. The script loads the input into memory to match transfers; a 10-million-row production batch would require chunking or an external pairing index.
+
+## Approaches to investigate later
+
+1. **Extend high-certainty rules:** Normalize more bank wrappers and merchant strings. Keep provenance for every rule.
 2. **Merchant knowledge and fuzzy matching:** Build a small merchant/category lookup or retrieval index. Evaluate on held-out merchants to avoid memorizing the training set.
 3. **LLM fallback:** Ask a model for ambiguous rows in batches using the full allowed context and taxonomy. Cache repeated normalized descriptions. Measure latency and cost; keep keys in environment variables.
 4. **Selective decision:** Estimate confidence and emit `unknown` when a label is more likely wrong than right. At +1/−1/0, predicting has positive expected value only above 50% correctness; calibration and actual score matter more than raw coverage.
